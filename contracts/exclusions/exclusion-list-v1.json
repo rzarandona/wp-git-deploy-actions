@@ -1,0 +1,118 @@
+{
+  "format": "exclusion-list/v1",
+  "spec": "Technical Specification v0.6.0 §K.8a (D-46), §I.2 rule 11a, §I.3 preservation PR-1–PR-6",
+  "meaning": "One documented deployment ignore list, applied consistently: the build never packages a matching path, and the site preserves a matching path that already exists inside a managed component directory. It is not .gitignore, and .gitignore is not consulted.",
+  "scope": "Patterns match paths relative to each managed component directory (plugins/{slug}/ or themes/{slug}/). Everything outside the managed scope is never touched regardless of this list.",
+  "syntax": {
+    "rules": [
+      "One pattern per line.",
+      "A pattern without a slash (apart from a trailing one) matches a file or directory name at any depth.",
+      "A pattern with a slash elsewhere is anchored at the component root; a leading slash is allowed and equivalent.",
+      "A trailing slash matches a directory and everything under it, never a file of that name.",
+      "A path below a matched directory is excluded.",
+      "* matches any run of characters except /; ? matches one character except /; a ** segment matches zero or more segments, and one or more when it ends the pattern (docs/** excludes everything inside docs, not docs itself).",
+      "Matching is byte-wise and case-sensitive over the UTF-8 bytes of the path: ? matches exactly one byte and * a run of bytes, so ? never matches a multi-byte character (use * for names with non-ASCII characters). Patterns themselves are ASCII.",
+      "Matching cost is bounded by pattern bytes × path bytes: every implementation is a dynamic programme at both levels — over (pattern segment, path segment) for the anchored walk and over (pattern byte, segment byte) inside a segment — with no regular expression and no backtracking, so repeated ** segments and repeated * or ? wildcards are safe."
+    ],
+    "refused": [
+      "negation (!)",
+      "character classes ([...])",
+      "backslash escapes",
+      "non-ASCII and control characters, spaces",
+      "empty patterns, empty segments, . or .. segments",
+      "** inside a segment (only a whole ** segment)",
+      "a ** segment followed by the trailing slash",
+      "patterns without any literal character, which would match everything",
+      "patterns longer than 200 bytes"
+    ],
+    "refusal_codes": [
+      "empty",
+      "too_long",
+      "character",
+      "matches_everything",
+      "empty_segment",
+      "dot_segment",
+      "double_star_in_segment",
+      "double_star_dir"
+    ]
+  },
+  "canonical_form": "The fixed patterns and the enabled additions, deduplicated, sorted by bytes, one per line, each line LF-terminated, UTF-8, no comments and no blank lines. exclusions_sha256 is the SHA-256 of these bytes; the site serves the text in GET /site, the gate passes it to the build, the release request echoes the hash, and a mismatch is EXCLUSIONS_STALE.",
+  "groups": [
+    {
+      "id": "version-control",
+      "title": "Version control and CI",
+      "fixed": true,
+      "patterns": [
+        ".git/",
+        ".github/",
+        ".gitignore",
+        ".gitattributes",
+        ".gitmodules"
+      ]
+    },
+    {
+      "id": "secrets",
+      "title": "Secrets and local configuration",
+      "fixed": true,
+      "patterns": [
+        ".env",
+        ".env.*",
+        "*.pem",
+        "*.key",
+        "wp-config.php",
+        "wp-config-*.php",
+        "auth.json"
+      ]
+    },
+    {
+      "id": "runtime",
+      "title": "Uploads, caches, backups and logs",
+      "fixed": true,
+      "patterns": [
+        "uploads/",
+        "upgrade/",
+        "cache/",
+        "backup*/",
+        "*.log",
+        "*.sql",
+        "*.sql.gz"
+      ]
+    },
+    {
+      "id": "system",
+      "title": "Operating-system and editor files",
+      "fixed": true,
+      "patterns": [
+        ".DS_Store",
+        "Thumbs.db",
+        "desktop.ini",
+        ".idea/",
+        ".vscode/"
+      ]
+    },
+    {
+      "id": "development",
+      "title": "Development files",
+      "fixed": false,
+      "default_enabled": true,
+      "patterns": [
+        "node_modules/",
+        "tests/",
+        "phpunit.xml*",
+        ".distignore"
+      ]
+    }
+  ],
+  "rejected_for_safety": {
+    "note": "Not exclusions. The archive validator refuses these on the site and in CI (Technical Specification §I.2 rule 11); they are listed here so the setup screen can show them under \"Always refused\".",
+    "patterns": [
+      ".user.ini",
+      "php.ini",
+      "*.phar",
+      "vendor/phpunit/",
+      ".htaccess (unless an audited per-target override)",
+      "web.config (unless an audited per-target override)"
+    ]
+  },
+  "default_canonical_sha256": "f2f34ab4e45a3a1e8e0a866b2c7c1d92165a3b0db8f9ecc6029b392b67abe182"
+}

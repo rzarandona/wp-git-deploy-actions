@@ -1,0 +1,60 @@
+name: Git Deploy gate
+description: Ask the site whether this run should build and deploy (automatic-deployment policy; the site's intake still decides)
+inputs:
+  mode:
+    description: component (one plugin or theme, dak1 key) or website (the whole site mapping, GitHub OIDC, no stored secret)
+    default: component
+  site-url:
+    description: Canonical WordPress URL (website mode defaults to the GIT_DEPLOY_SITE environment variable)
+    required: false
+  key:
+    description: Component mode only, and required there. Dedicated dak1 credential (deploy or read scope) from GitHub secrets
+    required: false
+  credential:
+    description: Website mode only. The site's OIDC credential id (a ULID; defaults to the GIT_DEPLOY_CREDENTIAL environment variable)
+    required: false
+  dispatch-request-id:
+    description: Website workflow_dispatch only, required there. One-use site-issued request id (lowercase hex32)
+    required: false
+  dispatch-commit:
+    description: Website workflow_dispatch only, required there. Exact approved commit (lowercase hex40), equal to the actual run commit
+    required: false
+  type:
+    description: Component mode only, and required there. Target type (plugin or theme)
+    required: false
+  slug:
+    description: Component mode only, and required there. Target slug
+    required: false
+  allow-insecure:
+    description: Explicit local/development HTTP opt-in only
+    default: 'false'
+outputs:
+  commit_sha:
+    description: Website mode. Exact run commit to check out and package, pinned to the site dispatch when dispatched
+  proceed:
+    description: '"true" when build and deploy should run'
+  reason:
+    description: Website mode. automatic, dispatch or automatic-off
+  environment:
+    description: Website mode. The site's environment, which the release names
+  mode:
+    description: Website mode. preview while the first release awaits its review, else apply
+  root_path:
+    description: Website mode. The repository path holding plugins/ and themes/
+  scope:
+    description: Website mode. JSON list of the managed types (plugins, themes)
+  excluded_components:
+    description: Website mode. JSON list of "type:slug" components the mapping leaves out
+  exclusions:
+    description: Website mode. The canonical exclusion list text (one pattern per line)
+  exclusions_sha256:
+    description: Website mode. SHA-256 of the exclusion list
+  mapping_epoch:
+    description: Website mode. The site mapping epoch the build is made against
+  site_php:
+    description: Website mode. The site's PHP version (major.minor), or empty when the site does not report it
+  site_wordpress:
+    description: Website mode. The site's WordPress version (major.minor), or empty when the site does not report it
+runs:
+  using: node24
+  main: main.mjs

@@ -1,0 +1,6 @@
+evidence/*.log -text
+evidence/*.xml -text
+evidence/*.json -text
+shared/Core/**/*.php -text
+contracts/**/*.json -text
+shared/node/*.mjs -text

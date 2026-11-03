@@ -1,0 +1,61 @@
+name: Git Deploy package
+description: Build and validate a single component, or a whole website release, with the accepted server archive policy
+inputs:
+  mode:
+    description: component (one plugin or theme) or website (one wp-release-zip/v1 of every plugin and theme under the root path)
+    default: component
+  path:
+    description: Component directory (component mode, required) or repository checkout (website mode, default .)
+    required: false
+  type:
+    description: Component mode only, and required there. plugin or theme
+    required: false
+  slug:
+    description: Component mode only, and required there. Target slug
+    required: false
+  exclude-from:
+    description: Component mode only. Exclusion file relative to the component
+    default: .distignore
+  root-path:
+    description: Website mode. The gate's root_path output
+    required: false
+  scope:
+    description: Website mode. The gate's scope output (JSON list)
+    required: false
+  excluded-components:
+    description: Website mode. The gate's excluded_components output (JSON list)
+    default: '[]'
+  exclusions:
+    description: Website mode. The gate's exclusions output (canonical list text)
+    required: false
+  exclusions-sha256:
+    description: Website mode. The gate's exclusions_sha256 output
+    required: false
+  database-effect:
+    description: Website mode. Asserted database effect for components without a .git-deploy.json deploy.database_effect
+    default: unknown
+  site-php:
+    description: Intended target PHP version for requirement checks
+    default: '8.2'
+  site-wordpress:
+    description: Intended target WordPress version for requirement checks
+    default: '6.6'
+  installed-parents:
+    description: Comma-separated intended target parent themes
+    default: ''
+outputs:
+  artifact:
+    description: Absolute component ZIP path (component mode) or release ZIP path (website mode)
+  sha256:
+    description: Artifact SHA-256
+  size:
+    description: Artifact size in bytes
+  build-info:
+    description: Component mode. Absolute standalone metadata path
+  release-info:
+    description: Website mode. Absolute release-info.json path (the manifest)
+  directory:
+    description: Website mode. The directory holding exactly release.zip and release-info.json
+runs:
+  using: node24
+  main: main.mjs

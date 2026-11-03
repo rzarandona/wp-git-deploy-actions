@@ -1,0 +1,62 @@
+name: Git Deploy
+description: Authenticated deployment through the Git Deploy machine API
+inputs:
+  mode:
+    description: component (one plugin or theme, dak1 key) or website (a website release, GitHub OIDC, no stored secret)
+    default: component
+  site-url:
+    description: Canonical WordPress URL (website mode defaults to the GIT_DEPLOY_SITE environment variable)
+    required: false
+  key:
+    description: Component mode only, and required there. Dedicated dak1 credential from GitHub secrets
+    required: false
+  credential:
+    description: Website mode only. The site's OIDC credential id (a ULID; defaults to the GIT_DEPLOY_CREDENTIAL environment variable)
+    required: false
+  dispatch-request-id:
+    description: Website workflow_dispatch only, required there. One-use site-issued request id (lowercase hex32)
+    required: false
+  dispatch-commit:
+    description: Website workflow_dispatch only, required there. Exact approved commit (lowercase hex40), equal to the actual run and packaged commit
+    required: false
+  artifact:
+    description: Packaged component ZIP path, or the website release ZIP path
+    required: true
+  build-info:
+    description: Component mode only, and required there. Standalone build-info.json path
+    required: false
+  release-info:
+    description: Website mode only. release-info.json path from the website build
+    required: false
+  environment:
+    description: Site environment binding (website mode - the gate's environment output)
+    required: true
+  release-mode:
+    description: Website mode only. The gate's mode output - preview (a dry run that returns the plan) or apply
+    required: false
+  mapping-epoch:
+    description: Website mode only. The gate's mapping_epoch output
+    required: false
+  exclusions-sha256:
+    description: Website mode only. The gate's exclusions_sha256 output
+    required: false
+  database-effect:
+    description: Component mode. Asserted database effect, never a rollback guarantee
+    default: unknown
+  dry-run:
+    description: Component mode. Validate and stage without live switch
+    default: 'false'
+  wait-timeout:
+    description: Total client wait budget in seconds (at most 3600)
+    default: '600'
+  allow-insecure:
+    description: Explicit local/development HTTP opt-in only
+    default: 'false'
+outputs:
+  deployment:
+    description: Deployment number
+  state:
+    description: Final deployment state
+runs:
+  using: node24
+  main: main.mjs

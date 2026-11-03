@@ -1,0 +1,18 @@
+name: Git Deploy edge check
+description: Prove an upstream body rejection on the canonical deployment path
+inputs:
+  site-url:
+    description: Canonical WordPress URL
+    required: true
+  key:
+    description: Dedicated dak1 credential with deploy scope
+    required: true
+  allow-insecure:
+    description: Explicit local/development HTTP opt-in
+    default: 'false'
+outputs:
+  status:
+    description: Agent-reported edge status
+runs:
+  using: node24
+  main: main.mjs
