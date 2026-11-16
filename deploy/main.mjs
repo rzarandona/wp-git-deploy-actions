@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { core } from '../src/core.mjs';
 import { deploy } from '../src/deploy.mjs';
 import { deployRelease } from '../src/release-deploy.mjs';
@@ -9,8 +10,10 @@ const mode=core.getInput('mode')||'component';
 if(mode==='website') {
   // Website mode (spec §K.1 release mode): no stored secret; each request carries a fresh GitHub OIDC token.
   try {
+    const artifact=core.getInput('artifact',{required:true});
     const result=await deployRelease({siteUrl:core.getInput('site-url')||process.env.GIT_DEPLOY_SITE||'',credential:core.getInput('credential')||process.env.GIT_DEPLOY_CREDENTIAL||'',
-      artifact:readFileSync(core.getInput('artifact',{required:true})),releaseInfo:JSON.parse(readFileSync(core.getInput('release-info',{required:true}),'utf8')),
+      // A version 2 build's packed lines travel beside release.zip; a version 1 build has none.
+      artifact:readFileSync(artifact),progressPath:join(dirname(artifact),'progress.json'),releaseInfo:JSON.parse(readFileSync(core.getInput('release-info',{required:true}),'utf8')),
       environment:core.getInput('environment',{required:true}),mode:core.getInput('release-mode',{required:true}),mappingEpoch:core.getInput('mapping-epoch',{required:true}),
       dispatchRequestId:core.getInput('dispatch-request-id'),dispatchCommit:core.getInput('dispatch-commit'),
       exclusionsSha256:core.getInput('exclusions-sha256',{required:true}),allowInsecure:boolean('allow-insecure'),waitTimeout:Number(core.getInput('wait-timeout')||'600')},

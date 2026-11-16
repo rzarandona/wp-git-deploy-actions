@@ -43,6 +43,9 @@ inputs:
   installed-parents:
     description: Comma-separated intended target parent themes
     default: ''
+  progress:
+    description: Website mode, workflow version 2. "true" also records one packed line per component in progress.json beside release.zip, for the deploy job to send; the build never contacts the site
+    default: 'false'
 outputs:
   artifact:
     description: Absolute component ZIP path (component mode) or release ZIP path (website mode)
@@ -55,7 +58,7 @@ outputs:
   release-info:
     description: Website mode. Absolute release-info.json path (the manifest)
   directory:
-    description: Website mode. The directory holding exactly release.zip and release-info.json
+    description: Website mode. The directory holding exactly release.zip and release-info.json, and progress.json when progress is "true"
 runs:
   using: node24
   main: main.mjs

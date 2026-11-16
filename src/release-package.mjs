@@ -129,7 +129,7 @@ function parseList(value, name) {
   return parsed;
 }
 
-export function packageRelease(options, { validate = validatePackage, log = () => {} } = {}) {
+export function packageRelease(options, { validate = validatePackage, log = () => {}, now = Date.now } = {}) {
   const root = resolve(options.path ?? '.');
   const output = resolve(options.output);
   const rootPath = options.rootPath;
@@ -208,6 +208,8 @@ export function packageRelease(options, { validate = validatePackage, log = () =
         const detail = String(error?.stderr ?? error?.message ?? '').trim().split('\n').pop();
         throw new Error(`${component.label} failed the archive rules${detail ? `: ${detail}` : ''}`);
       }
+      // The runner's clock when the component was packed and passed the rules (a v2 build's "packed" line, E-10).
+      component.packedAt = new Date(now()).toISOString();
     }
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 
@@ -230,6 +232,7 @@ export function packageRelease(options, { validate = validatePackage, log = () =
     writeFileSync(artifactPath, archive, { flag: 'wx' }); wroteArtifact = true;
     writeFileSync(infoPath, JSON.stringify(info, null, 2) + '\n', { flag: 'wx' });
   } catch (error) { if (wroteArtifact) unlinkSync(artifactPath); throw error; }
-  return { artifact: artifactPath, releaseInfo: infoPath, directory: output, sha256, size: archive.length, manifest, notes };
+  const packed = components.map(c => ({ type: c.type, slug: c.slug, version: c.version, at: c.packedAt }));
+  return { artifact: artifactPath, releaseInfo: infoPath, directory: output, sha256, size: archive.length, manifest, notes, packed };
 }
 

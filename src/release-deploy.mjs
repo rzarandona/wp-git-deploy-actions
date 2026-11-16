@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { oidcSigner } from './oidc.mjs';
+import { deliverProgress } from './run-progress.mjs';
 import { validateSchema } from './schema.mjs';
 import { websiteClient } from './website-client.mjs';
 import { websiteDispatch } from './website-dispatch.mjs';
@@ -114,6 +115,8 @@ export async function deployRelease(options, ports = {}) {
     const limit = agent.limits?.compressed_artifact_bytes;
     requireThat(Number.isSafeInteger(limit) && options.artifact.length <= limit, 'the release archive exceeds the site\'s limit');
     requireThat(Number.isSafeInteger(agent.server_time) && Math.abs(Math.floor(now() / 1000) - agent.server_time) <= 60, 'the site clock differs from this runner\'s by more than 60 seconds');
+    // A version 2 build's packed lines (E-10), with this job's own sign-in. Best effort: it never stops the release.
+    if (options.progressPath) await deliverProgress(options.progressPath, call, { env, log, end: Math.min(deadline, now() + 15000) });
     resource = await call('/deploy-agent/v1/releases', { method: 'POST', bytes: body, retry: true, end: deadline });
     id = resource.number ?? resource.id;
     requireThat(Number.isSafeInteger(id) && id > 0, 'invalid deployment number');

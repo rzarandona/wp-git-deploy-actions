@@ -87,7 +87,9 @@ export function signWithKey({keyId, privateKey: signingKey, siteUrl, route, meth
   // v0.6.0 (D-46): the website workflow reads the site mapping and creates a release (spec §F.2, §K.1 release mode).
   const site = method === 'GET' && route === '/deploy-agent/v1/site';
   const release = method === 'POST' && route === '/deploy-agent/v1/releases' && body.length > 0;
-  requireThat(agent || status || create || artifact || cancel || canary || report || target || site || release, 'unsupported signed request');
+  // UI polish E-10/E-11: the website deploy job posts its run's build lines (non-empty body) with its own OIDC sign-in.
+  const progress = method === 'POST' && route === '/deploy-agent/v1/runs/progress' && body.length > 0;
+  requireThat(agent || status || create || artifact || cancel || canary || report || target || site || release || progress, 'unsupported signed request');
   if (status) { allowed = ['events_after']; requireThat(query.events_after === undefined || /^[0-9]+$/.test(String(query.events_after)), 'invalid event cursor'); }
   requireThat(contentHash === undefined || (canary && contentHash === 'oversize-canary'), 'invalid hash exception');
   const hash = createHash('sha256').update(body).digest('hex');
