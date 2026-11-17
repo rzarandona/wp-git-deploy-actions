@@ -17,7 +17,8 @@ import { ignored, validatePackage, zip, zipNamed } from './package.mjs';
  * extraction (TreeObservation over the managed index): every packaged file and every directory above one, sorted by path
  * bytes; a directory has size and sha256 null.
  */
-const slugPattern = /^[a-z0-9][a-z0-9._-]{0,99}$/;
+/** A component slug (spec §I.2), and so the name of a parent theme a child theme's `Template` header can name. */
+export const slugPattern = /^[a-z0-9][a-z0-9._-]{0,99}$/;
 const PROTECTED_SLUGS = ['deploy-agent', 'dagent-guard'];
 const DROP_IN_NAMES = ['advanced-cache', 'db', 'db-error', 'install', 'maintenance', 'object-cache', 'php-error', 'fatal-error-handler',
   'sunrise', 'blog-deleted', 'blog-inactive', 'blog-suspended'];

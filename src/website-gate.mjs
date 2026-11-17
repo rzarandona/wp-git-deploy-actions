@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { canonical as canonicalExclusions } from '../shared/node/exclusion-check.mjs';
 import { oidcSigner } from './oidc.mjs';
 import { websiteClient } from './website-client.mjs';
-import { validRootPath } from './release-package.mjs';
+import { slugPattern, validRootPath } from './release-package.mjs';
 import { websiteDispatch } from './website-dispatch.mjs';
 
 /**
@@ -11,7 +11,8 @@ import { websiteDispatch } from './website-dispatch.mjs';
  * the key-free build as job outputs. The site's intake (§F.2 step 5b) stays authoritative; this only decides whether a run
  * builds at all and what it builds against.
  */
-const slugPattern = /^[a-z0-9][a-z0-9._-]{0,99}$/;
+/** The most installed themes a site lists (InstalledThemes::MAX_LISTED). */
+const MAX_INSTALLED_THEMES = 200;
 function requireThat(condition, message) { if (!condition) throw new Error(message); }
 
 /** Checks the `GET /site` document (SiteDocument::of) and returns what the build needs. */
@@ -35,10 +36,15 @@ export function readSiteDocument(site) {
   requireThat(typeof site.exclusions === 'string' && typeof site.exclusions_sha256 === 'string' && /^[0-9a-f]{64}$/.test(site.exclusions_sha256), 'the site reported no exclusion list');
   requireThat(createHash('sha256').update(Buffer.from(site.exclusions, 'utf8')).digest('hex') === site.exclusions_sha256, 'the exclusion list does not match its hash');
   requireThat(site.exclusions !== '' && site.exclusions.endsWith('\n') && canonicalExclusions(site.exclusions.slice(0, -1).split('\n')) === site.exclusions, 'the exclusion list is not canonical');
+  // The themes installed on the site, which a child theme in the repository may name as its parent although the repository
+  // does not hold it (17 November 2026, run 44066374405). An older site does not list them: none.
+  const installed = Object.hasOwn(site, 'installed_themes') ? site.installed_themes : [];
+  requireThat(Array.isArray(installed) && installed.length <= MAX_INSTALLED_THEMES && installed.every(x => typeof x === 'string' && slugPattern.test(x))
+    && new Set(installed).size === installed.length, 'the site reported invalid installed themes');
   return {
     mode: site.mode, root_path: site.root_path, scope: site.scope, excluded_components: site.excluded_components, exclusions: site.exclusions,
     exclusions_sha256: site.exclusions_sha256, mapping_epoch: site.epoch, automatic: site.automatic,
-    repository_id: site.repository_id, branch: site.branch,
+    repository_id: site.repository_id, branch: site.branch, installed_themes: installed,
   };
 }
 
@@ -67,7 +73,7 @@ export async function websiteGate(options, ports = {}) {
     proceed, reason: dispatch ? 'dispatch' : site.automatic ? 'automatic' : 'automatic-off', environment: agent.environment,
     mode: site.mode, root_path: site.root_path, scope: site.scope, excluded_components: site.excluded_components,
     exclusions: site.exclusions, exclusions_sha256: site.exclusions_sha256, mapping_epoch: site.mapping_epoch,
-    site_php: platform?.php ?? '', site_wordpress: platform?.wordpress ?? '',
+    site_php: platform?.php ?? '', site_wordpress: platform?.wordpress ?? '', installed_parents: site.installed_themes,
     commit_sha: binding?.commit ?? env.GITHUB_SHA,
   };
 }

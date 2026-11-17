@@ -41,7 +41,7 @@ inputs:
     description: Intended target WordPress version for requirement checks
     default: '6.6'
   installed-parents:
-    description: Comma-separated intended target parent themes
+    description: Comma-separated themes installed on the target site, which a child theme may name as its parent (website mode, the gate's installed_parents output)
     default: ''
   progress:
     description: Website mode, workflow version 2. "true" also records one packed line per component in progress.json beside release.zip, for the deploy job to send; the build never contacts the site

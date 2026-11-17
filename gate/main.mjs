@@ -23,6 +23,7 @@ if(mode==='website') {
     core.setOutput('mapping_epoch',String(result.mapping_epoch));
     core.setOutput('site_php',result.site_php);
     core.setOutput('site_wordpress',result.site_wordpress);
+    core.setOutput('installed_parents',result.installed_parents.join(','));
     core.setOutput('commit_sha',result.commit_sha);
     core.summary(result.proceed
       ? `Git Deploy gate: build a website ${result.mode==='preview'?'preview':'release'} (${result.reason}) of ${result.root_path} for ${result.environment}. The site still checks the release.\n`

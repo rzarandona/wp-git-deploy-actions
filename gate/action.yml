@@ -55,6 +55,8 @@ outputs:
     description: Website mode. The site's PHP version (major.minor), or empty when the site does not report it
   site_wordpress:
     description: Website mode. The site's WordPress version (major.minor), or empty when the site does not report it
+  installed_parents:
+    description: Website mode. Comma-separated themes installed on the site, for the package step's installed-parents (empty when the site does not report them)
 runs:
   using: node24
   main: main.mjs
