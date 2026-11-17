@@ -49,8 +49,11 @@ export function websiteClient(signer, { fetch: fetchRequest = globalThis.fetch, 
         await sleep(Math.min(backoff, Math.max(0, end - now())));
         continue;
       }
-      const detail = data && typeof data === 'object' && data.details && typeof data.details === 'object'
-        ? Object.entries(data.details).filter(([, v]) => typeof v === 'string' || typeof v === 'number').map(([k, v]) => `${safe(k)}=${safe(v)}`).join(', ') : '';
+      // The site's refusals use the WordPress REST error envelope {code, message, data: {status, correlation_id, details}}
+      // (spec §F): the details, such as a plain reason, are inside `data`.
+      const details = data && typeof data === 'object' && data.data && typeof data.data === 'object' ? data.data.details : null;
+      const detail = details && typeof details === 'object'
+        ? Object.entries(details).filter(([, v]) => typeof v === 'string' || typeof v === 'number').map(([k, v]) => `${safe(k)}=${safe(v)}`).join(', ') : '';
       throw new ApiRefusal(response.status, code, `the site refused ${method} ${safe(route)}: ${safe(code ?? `HTTP ${response.status}`)}${detail ? ` (${detail})` : ''}`);
     }
   };

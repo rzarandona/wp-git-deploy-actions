@@ -124,9 +124,13 @@ export async function deliverProgress(path, call, { env = process.env, log = () 
   try {
     const document = parseProgress(text);
     const run = runOf(env);
-    requireThat(run !== null && run.run_id === document.run_id && run.run_attempt === document.run_attempt, 'they belong to another run attempt');
+    // GitHub's "Re-run failed jobs" keeps the build job of an earlier attempt of this run, so its progress.json may name
+    // that attempt. This job deploys exactly what that build packed, so the lines are sent under this job's attempt, the
+    // one its sign-in names. Another run's lines, or a later attempt's, are never sent.
+    requireThat(run !== null && run.run_id === document.run_id && document.run_attempt <= run.run_attempt, 'they belong to another run');
+    const sent = { ...document, run_attempt: run.run_attempt };
     const totals = { accepted: 0, duplicates: 0, dropped: 0 };
-    for (const bytes of progressBodies(document)) counted(await call(PROGRESS_ROUTE, { method: 'POST', bytes, end }), totals);
+    for (const bytes of progressBodies(sent)) counted(await call(PROGRESS_ROUTE, { method: 'POST', bytes, end }), totals);
     log(`progress: ${document.events.length} packed lines delivered (${totals.accepted} new, ${totals.duplicates} already there)`);
     return totals;
   } catch (error) {
