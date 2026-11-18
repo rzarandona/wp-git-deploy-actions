@@ -89,9 +89,10 @@ export function oidcSigner({ siteUrl, credential, allowInsecure = false, ephemer
   return {
     audience,
     publicKey: ephemeral.publicB64,
-    async sign({ route, method = 'GET', body = Buffer.alloc(0), query = {} }) {
+    // `contentHash` is only the edge check's `oversize-canary` literal (signWithKey refuses anything else).
+    async sign({ route, method = 'GET', body = Buffer.alloc(0), query = {}, contentHash }) {
       const token = await requestOidcToken(audience, ports);
-      const signed = signWithKey({ keyId: credential, privateKey: ephemeral.privateKey, siteUrl, allowInsecure, route, method, body, query });
+      const signed = signWithKey({ keyId: credential, privateKey: ephemeral.privateKey, siteUrl, allowInsecure, route, method, body, query, contentHash });
       return { ...signed, headers: { ...signed.headers, 'X-Deploy-Oidc-Token': token, 'X-Deploy-Ephemeral-Key': ephemeral.publicB64 } };
     },
   };

@@ -4,6 +4,7 @@ import { oidcSigner } from './oidc.mjs';
 import { websiteClient } from './website-client.mjs';
 import { slugPattern, validRootPath } from './release-package.mjs';
 import { websiteDispatch } from './website-dispatch.mjs';
+import { edgeCheck, edgeCheckDue } from './edge.mjs';
 
 /**
  * The website workflow's gate (spec §K.1 release mode, §F.2 GET /site; OIDC per §K.3). It reads the site's capabilities
@@ -48,6 +49,27 @@ export function readSiteDocument(site) {
   };
 }
 
+/**
+ * Why a production site's edge check failed, in plain words, with the fix. The site keeps every production change
+ * blocked until its web server refuses an oversize upload before WordPress runs (readiness check `edge`, Q8-30).
+ */
+export function edgeFailureMessage(error) {
+  const cap = Number.isSafeInteger(error?.cap) ? error.cap : null;
+  const limit = cap === null ? 'the size the site reports as edge_cap_bytes'
+    : `${cap} bytes (nginx: client_max_body_size ${cap};)`;
+  const fix = `Set a request body limit of ${limit} in the web server or proxy in front of WordPress, then run the workflow again. `
+    + 'A limit applied inside PHP, such as upload_max_filesize or Apache LimitRequestBody with mod_php, does not count.';
+  switch (error?.kind) {
+    case 'reached_php': return `the site's web server let an oversize test upload reach WordPress, so the site blocks production deployments. ${fix}`;
+    case 'not_refused': return `the site's web server did not refuse an oversize test upload (${error.status ? `HTTP ${error.status}` : 'no answer'}), so the site blocks production deployments. ${fix}`;
+    case 'redirect': return "the oversize test upload was redirected, so the site's upload limit could not be proven. Point the workflow's site address at the final HTTPS address of the site.";
+    case 'report_refused': return error.code === 'INVALID_STATE'
+      ? 'the site recorded a failed edge check in the last 10 minutes, so it does not accept a new result yet. Wait 10 minutes, then run the workflow again.'
+      : `the site refused the edge check result (${error.code ?? `HTTP ${error.status}`}).`;
+    default: return "the site's upload limit could not be checked.";
+  }
+}
+
 export async function websiteGate(options, ports = {}) {
   const { siteUrl, credential, allowInsecure = false, env = process.env } = options;
   const eventName = env.GITHUB_EVENT_NAME;
@@ -69,8 +91,19 @@ export async function websiteGate(options, ports = {}) {
   requireThat(platform === null || (typeof platform === 'object' && version(platform.php) && version(platform.wordpress)), 'the site reported an invalid platform');
   const dispatch = eventName === 'workflow_dispatch';
   const proceed = dispatch || site.automatic;
+  // A production site refuses every change until its edge (the web server's upload limit) is VERIFIED, and a proof
+  // lasts 30 days. Before a run that builds, the gate proves it again when it is missing, failed or ends within 7 days.
+  let edge = 'not-needed';
+  if (proceed && agent.tier === 'production' && edgeCheckDue(agent.edge_status, (ports.now ?? Date.now)())) {
+    try {
+      await edgeCheck({ signer, cap: agent.limits?.edge_cap_bytes }, ports);
+    } catch (error) {
+      throw new Error(edgeFailureMessage(error));
+    }
+    edge = 'verified';
+  }
   return {
-    proceed, reason: dispatch ? 'dispatch' : site.automatic ? 'automatic' : 'automatic-off', environment: agent.environment,
+    proceed, reason: dispatch ? 'dispatch' : site.automatic ? 'automatic' : 'automatic-off', edge, environment: agent.environment,
     mode: site.mode, root_path: site.root_path, scope: site.scope, excluded_components: site.excluded_components,
     exclusions: site.exclusions, exclusions_sha256: site.exclusions_sha256, mapping_epoch: site.mapping_epoch,
     site_php: platform?.php ?? '', site_wordpress: platform?.wordpress ?? '', installed_parents: site.installed_themes,

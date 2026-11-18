@@ -25,8 +25,10 @@ if(mode==='website') {
     core.setOutput('site_wordpress',result.site_wordpress);
     core.setOutput('installed_parents',result.installed_parents.join(','));
     core.setOutput('commit_sha',result.commit_sha);
+    core.setOutput('edge',result.edge);
     core.summary(result.proceed
       ? `Git Deploy gate: build a website ${result.mode==='preview'?'preview':'release'} (${result.reason}) of ${result.root_path} for ${result.environment}. The site still checks the release.\n`
+        +(result.edge==='verified'?"The site's web server refused an oversize test upload before WordPress, so its upload limit is proven for 30 days.\n":'')
       : 'Git Deploy gate: automatic deployment is off for this site, so this push builds and deploys nothing. Use Deploy Now in WordPress.\n');
   } catch(error) {
     process.stderr.write(`Git Deploy gate failed, so nothing is built: ${redactTokens(error?.message)}\n`);process.exitCode=1;
